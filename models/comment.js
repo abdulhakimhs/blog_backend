@@ -10,8 +10,8 @@ const commentSchema = mongoose.Schema({
     required: true,
   },
   postID: {
-    type: String,
-    required: true,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Post",
   },
   isPublish: {
     type: Boolean,

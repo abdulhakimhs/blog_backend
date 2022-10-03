@@ -1,22 +1,33 @@
 const Post = require("../models/post");
 
 exports.postList = async (req, res) => {
-  // sort desc
-  const sort = { _id: -1 };
-  const { page = 1, limit = 4 } = req.query;
+  let query = [{ $sort: { _id: -1 } }];
 
+  if (req.query.keyword && req.query.keyword != "") {
+    query.push({
+      $match: {
+        title: { $regex: req.query.keyword },
+      },
+    });
+  }
   try {
-    const posts = await Post.find()
-      .sort(sort)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .exec();
+    const total = await Post.countDocuments(query);
+    const page = req.query.page ? parseInt(req.query.page) : 1;
+    const perPage = req.query.perPage ? parseInt(req.query.perPage) : 5;
+    const skip = (page - 1) * perPage;
+    query.push({ $skip: skip }, { $limit: perPage });
 
-    const count = await Post.countDocuments();
-    res.status(201).json({
-      posts,
-      totalPages: Math.ceil(count / limit),
-      currentPage: page,
+    const posts = await Post.aggregate(query);
+    res.status(200).json({
+      code: "200",
+      status: "OK",
+      data: posts,
+      page: {
+        total: total,
+        currentPage: page,
+        perPage: perPage,
+        totalPages: Math.ceil(total / perPage),
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
