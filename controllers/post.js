@@ -1,7 +1,8 @@
 const Post = require("../models/post");
+const mongoose = require("mongoose");
 
 exports.postList = async (req, res) => {
-  let query = [{ $sort: { _id: -1 } }];
+  const query = [{ $sort: { _id: -1 } }];
 
   if (req.query.keyword && req.query.keyword != "") {
     query.push({
@@ -28,6 +29,30 @@ exports.postList = async (req, res) => {
         perPage: perPage,
         totalPages: Math.ceil(total / perPage),
       },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.postDetail = async (req, res) => {
+  try {
+    const query = [
+      {
+        $lookup: {
+          from: "comments",
+          localField: "_id",
+          foreignField: "postID",
+          as: "comment",
+        },
+      },
+      { $match: { _id: mongoose.Types.ObjectId(req.params.id) } },
+    ];
+    const posts = await Post.aggregate(query);
+    res.status(200).json({
+      code: "200",
+      status: "OK",
+      data: posts,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
